@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+// on start
 export function activate(context: vscode.ExtensionContext) {
 
   let disposable = vscode.commands.registerCommand('json-table-viewer.showPreview', () => {
@@ -25,6 +26,98 @@ export function activate(context: vscode.ExtensionContext) {
         // panel.webview.html = getErrorWebviewContent(e.toString());
       }
 
+      // handle edit
+      panel.webview.onDidReceiveMessage(
+        async message => {
+          switch (message.command) {
+            case 'updateValue':
+              if (!editor) {
+                vscode.window.showErrorMessage('No active editor to update.');
+                return;
+              }
+
+              try {
+                const document = editor.document;
+                const json = JSON.parse(document.getText());
+
+                let target = json;
+                const navPath = message.path.slice(1);
+
+                for (const segment of navPath) {
+                  if (Array.isArray(target) && segment.startsWith('[') && segment.endsWith(']')) {
+                    const index = parseInt(segment.substring(1, segment.length - 1));
+                    target = target[index];
+                  } else {
+                    target = target[segment];
+                  }
+                }
+
+                let coercedValue;
+                try {
+                  coercedValue = JSON.parse(message.newValue);
+                } catch (e) {
+                  coercedValue = message.newValue;
+                }
+
+                if (message.index !== null && message.key !== null) {
+                  target[message.index][message.key] = coercedValue;
+                } else if (message.index !== null) {
+                  target[message.index] = coercedValue;
+                } else if (message.key !== null) {
+                  target[message.key] = coercedValue;
+                }
+
+                const newJsonString = JSON.stringify(json, null, 2);
+
+                const fullRange = new vscode.Range(
+                  document.positionAt(0),
+                  document.positionAt(document.getText().length)
+                );
+
+                const edit = new vscode.WorkspaceEdit();
+                edit.replace(document.uri, fullRange, newJsonString);
+
+                const success = await vscode.workspace.applyEdit(edit);
+
+                if (success) {
+                  panel.webview.postMessage({
+                    command: 'documentUpdated',
+                    newContent: newJsonString
+                  });
+                } else {
+                  vscode.window.showErrorMessage('Failed to apply edit.');
+                }
+
+              } catch (e) {
+                vscode.window.showErrorMessage(`Error updating JSON: `);
+              }
+              return;
+          }
+        },
+        undefined,
+        context.subscriptions
+      );
+
+      // listener for manual text changes
+      const onChangeListener = vscode.workspace.onDidChangeTextDocument(event => {
+        if (event.document.uri === editor.document.uri) {
+          try {
+            const newContent = event.document.getText();
+            JSON.parse(newContent); // Validate JSON
+            panel.webview.postMessage({
+              command: 'documentUpdated',
+              newContent: newContent
+            });
+          } catch (e) {
+          }
+        }
+      });
+
+      // Cleanup listeners
+      panel.onDidDispose(() => {
+        onChangeListener.dispose();
+      }, null, context.subscriptions);
+
     } else {
       vscode.window.showErrorMessage('No active JSON editor found!');
     }
@@ -33,7 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-// vere file ilott mattanam
+// html for prevbuiew
 function getWebviewContent(jsonContent: string): string {
   const escapedJson = jsonContent.replace(/`/g, '\\`').replace(/\$/g, '\\$');
 
@@ -45,6 +138,7 @@ function getWebviewContent(jsonContent: string): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSON Table Preview</title>
     <style>
+      /* (All styles are unchanged) */
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         padding: 10px;
@@ -129,9 +223,6 @@ function getWebviewContent(jsonContent: string): string {
         border-radius: 4px;
         cursor: pointer;
       }
-      #toggle-columns-btn:hover {
-        background-color: #005f9e;
-      }
       #columns-container {
         border: 1px solid #ddd;
         padding: 10px;
@@ -141,8 +232,17 @@ function getWebviewContent(jsonContent: string): string {
       }
       #columns-container label {
         display: block;
-        margin-bottom: 5px;
-        white-space: nowrap;
+      }
+      .editable-cell {
+        cursor: text;
+      }
+      .editable-cell:hover {
+        background-color: #f5f5f5;
+      }
+      [contenteditable="true"] {
+        background-color: #fff;
+        box-shadow: 0 0 2px 1px #007acc;
+        outline: none;
       }
     </style>
 </head>
@@ -155,14 +255,15 @@ function getWebviewContent(jsonContent: string): string {
 
     <script>
       (function() {
-        const jsonData = \`${escapedJson}\`;
-        const rootData = JSON.parse(jsonData);
+        const vscode = acquireVsCodeApi();
+        
+        let rootData = JSON.parse(\`${escapedJson}\`);
         
         const navigationStack = [
           { data: rootData, name: 'root' }
         ];
 
-        // State Varibles
+        // --- State Variables ---
         let filterState = {};
         let sortState = { key: null, direction: 'asc' };
         let focusedInput = null;
@@ -173,6 +274,29 @@ function getWebviewContent(jsonContent: string): string {
         const breadcrumbContainer = document.getElementById('breadcrumbs');
         const tableContainer = document.getElementById('table-container');
         const controlsContainer = document.getElementById('controls-container');
+        
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'documentUpdated':
+                    try {
+                        rootData = JSON.parse(message.newContent);
+                        navigationStack.splice(0, navigationStack.length, { data: rootData, name: 'root' });
+                        filterState = {};
+                        sortState = { key: null, direction: 'asc' };
+                        focusedInput = null;
+                        hiddenColumns = new Set();
+                        allHeaders = [];
+                        isColumnsVisible = false;
+
+                        render();
+                    } catch (e) {
+                        console.error('Error parsing updated JSON from extension:', e);
+                        tableContainer.innerHTML = \`<h2>Error syncing with file: \${e}</h2>\`;
+                    }
+                    break;
+            }
+        });
 
         /**
          * Renders the UI based on the *last* item in the navigationStack.
@@ -191,10 +315,7 @@ function getWebviewContent(jsonContent: string): string {
           
           attachClickListeners();
         }
-
-        /**
-         * Renders the breadcrumb navigation bar.
-         */
+        
         function renderBreadcrumbs() {
           breadcrumbContainer.innerHTML = '';
           navigationStack.forEach((item, index) => {
@@ -207,7 +328,6 @@ function getWebviewContent(jsonContent: string): string {
               breadcrumbContainer.innerHTML += \`<a href="#" class="breadcrumb-link" data-index="\${index}">\${item.name}</a>\`;
             }
           });
-
           breadcrumbContainer.querySelectorAll('.breadcrumb-link').forEach(link => {
             link.addEventListener('click', (e) => {
               e.preventDefault();
@@ -223,15 +343,11 @@ function getWebviewContent(jsonContent: string): string {
           });
         }
         
-        /**
-         * Renders the controls area (e.g., Column Toggle button).
-         */
         function renderControls(data) {
           if (!Array.isArray(data) || data.length === 0 || typeof data[0] !== 'object' || data[0] === null) {
             controlsContainer.innerHTML = '';
             return;
           }
-
           if (allHeaders.length === 0) {
             const headers = new Set();
             data.forEach(item => {
@@ -241,12 +357,9 @@ function getWebviewContent(jsonContent: string): string {
             });
             allHeaders = Array.from(headers);
           }
-
           const displayStyle = isColumnsVisible ? 'block' : 'none';
-          
           let html = \`<button id="toggle-columns-btn">Columns</button>
             <div id="columns-container" style="display: \${displayStyle};">\`;
-
           allHeaders.forEach(header => {
             const isChecked = !hiddenColumns.has(header);
             html += \`<label>
@@ -254,14 +367,10 @@ function getWebviewContent(jsonContent: string): string {
                        \${header}
                      </label>\`;
           });
-
           html += \`</div>\`;
           controlsContainer.innerHTML = html;
         }
 
-        /**
-         * Renders the given data (object or array) into the table container.
-         */
         function renderData(data, originalData) {
           if (Array.isArray(originalData)) {
             tableContainer.innerHTML = buildTableFromArray(data, originalData);
@@ -272,180 +381,141 @@ function getWebviewContent(jsonContent: string): string {
           }
         }
         
-        /**
-         * Filters the data based on the current filterState.
-         */
         function applyFiltering(data) {
-          if (!Array.isArray(data) || typeof data[0] !== 'object' || data[0] === null) {
-            return data;
-          }
+          if (!Array.isArray(data) || typeof data[0] !== 'object' || data[0] === null) { return data; }
           const filterKeys = Object.keys(filterState);
-          if (filterKeys.length === 0) {
-            return data;
-          }
+          if (filterKeys.length === 0) { return data; }
           return data.filter(item => {
             for (const key of filterKeys) {
               const filterText = filterState[key].toLowerCase();
               const itemValue = String(item[key] || '').toLowerCase();
-              if (!itemValue.includes(filterText)) {
-                return false;
-              }
+              if (!itemValue.includes(filterText)) { return false; }
             }
             return true;
           });
         }
 
-        /**
-         * Sorts the data based on the current sortState.
-         */
         function applySorting(data) {
-          if (!Array.isArray(data) || sortState.key === null) {
-            return data;
-          }
-          if (typeof data[0] !== 'object' || data[0] === null) {
-            return data;
-          }
-
+          if (!Array.isArray(data) || sortState.key === null) { return data; }
+          if (typeof data[0] !== 'object' || data[0] === null) { return data; }
           return data.slice().sort((a, b) => {
             const valA = a[sortState.key];
             const valB = b[sortState.key];
             const direction = (sortState.direction === 'asc') ? 1 : -1;
-
             if (valA === valB) return 0;
             if (valA === undefined || valA === null) return 1 * direction;
             if (valB === undefined || valB === null) return -1 * direction;
-            if (typeof valA === 'number' && typeof valB === 'number') {
-              return (valA - valB) * direction;
-            }
-            if (typeof valA === 'string' && typeof valB === 'string') {
-              return valA.localeCompare(valB) * direction;
-            }
+            if (typeof valA === 'number' && typeof valB === 'number') { return (valA - valB) * direction; }
+            if (typeof valA === 'string' && typeof valB === 'string') { return valA.localeCompare(valB) * direction; }
             return String(valA).localeCompare(String(valB)) * direction;
           });
         }
+        
+        function isPrimitive(value) {
+          return value === null || (typeof value !== 'object' && !Array.isArray(value));
+        }
 
-        /**
-         * Builds an HTML table from an array.
-         */
+        function renderCell(value) {
+          if (value === null) return "<i>null</i>";
+          if (Array.isArray(value)) return \`[ Array(\${value.length}) ]\`;
+          if (typeof value === 'object') return \`[ Object ]\`;
+          if (typeof value === 'string') {
+             if (/\.(jpg|jpeg|png|gif|svg)$/i.test(value)) {
+                return \`<img src="\${value}" alt="image" style="max-width: 100px; max-height: 100px;">\`;
+             }
+             if (value.startsWith('http://') || value.startsWith('https://')) {
+                return \`<a href="\${value}" target="_blank">\${value}</a>\`;
+             }
+             return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          }
+          return value;
+        }
+
         function buildTableFromArray(array, originalArray) {
           if (originalArray.length === 0) return "<p>Empty Array []</p>";
-
           let html = "<table>";
           const firstItem = originalArray[0];
-
           if (typeof firstItem === 'object' && firstItem !== null && !Array.isArray(firstItem)) {
-            
             const visibleHeaders = allHeaders.filter(h => !hiddenColumns.has(h));
-            
             html += "<tr><th class='key-cell'>(index)</th>";
             visibleHeaders.forEach(header => {
               let arrow = '';
-              if (sortState.key === header) {
-                arrow = (sortState.direction === 'asc') ? '▲' : '▼';
-              }
-              html += \`<th class="sortable-header" data-key="\${header}">
-                        \${header} <span class="sort-arrow">\${arrow}</span>
-                      </th>\`;
+              if (sortState.key === header) { arrow = (sortState.direction === 'asc') ? '▲' : '▼'; }
+              html += \`<th class="sortable-header" data-key="\${header}">\${header} <span class="sort-arrow">\${arrow}</span></th>\`;
             });
             html += "</tr>";
-
             html += "<tr class='filter-row'><td class='key-cell'></td>";
             visibleHeaders.forEach(header => {
-              html += \`<td>
-                         <input type="text" class="filter-input" data-key="\${header}" placeholder="Filter...">
-                       </td>\`;
+              html += \`<td><input type="text" class="filter-input" data-key="\${header}" placeholder="Filter..."></td>\`;
             });
             html += "</tr>";
-
             if (array.length === 0) {
-              html += \`<tr class="no-results-row">
-                         <td colspan="\${visibleHeaders.length + 1}">No results found.</td>
-                       </tr>\`;
+              html += \`<tr class="no-results-row"><td colspan="\${visibleHeaders.length + 1}">No results found.</td></tr>\`;
             } else {
               array.forEach((item, index) => {
                 html += "<tr>";
                 html += \`<td class="key-cell">\${index}</td>\`;
                 visibleHeaders.forEach(header => {
-                  const value = (typeof item === 'object' && item !== null) ? item[header] : item;
-                  html += \`<td>\${renderCell(value, \`data-index="\${index}" data-key="\${header}"\`)}</td>\`;
+                  const value = (typeof item === 'object' && item !== null) ? item[header] : undefined;
+                  const displayValue = renderCell(value);
+                  if (isPrimitive(value)) {
+                    html += \`<td class="editable-cell" data-index="\${index}" data-key="\${header}">\${displayValue}</td>\`;
+                  } else {
+                    html += \`<td class="clickable-cell" data-index="\${index}" data-key="\${header}">\${displayValue}</td>\`;
+                  }
                 });
                 html += "</tr>";
               });
             }
-          
           } else {
-            html += "<tr><th class='key-cell'>(index)</th><th>(value)</th></tr>";
+            html += "<tr><th class'key-cell'>(index)</th><th>(value)</th></tr>";
             array.forEach((item, index) => {
               html += "<tr>";
               html += \`<td class="key-cell">\${index}</td>\`;
-              html += \`<td>\${renderCell(item, \`data-index="\${index}"\`)}</td>\`;
+              const displayValue = renderCell(item);
+              if (isPrimitive(item)) {
+                html += \`<td class="editable-cell" data-index="\${index}">\${displayValue}</td>\`;
+              } else {
+                html += \`<td class="clickable-cell" data-index="\${index}">\${displayValue}</td>\`;
+              }
               html += "</tr>";
             });
           }
-
           html += "</table>";
           return html;
         }
 
-        /**
-         * Builds a 2-column (Key-Value) HTML table from a single object.
-         */
         function buildTableFromObject(obj) {
           const keys = Object.keys(obj);
           if (keys.length === 0) return "<p>Empty Object {}</p>";
-
           let html = "<table>";
           keys.forEach(key => {
             html += "<tr>";
             html += \`<td class="key-cell">\${key}</td>\`;
-            html += \`<td>\${renderCell(obj[key], \`data-key="\${key}"\`)}</td>\`;
+            const value = obj[key];
+            const displayValue = renderCell(value);
+            if (isPrimitive(value)) {
+              html += \`<td class="editable-cell" data-key="\${key}">\${displayValue}</td>\`;
+            } else {
+              html += \`<td class="clickable-cell" data-key="\${key}">\${displayValue}</td>\`;
+            }
             html += "</tr>";
           });
           html += "</table>";
           return html;
         }
-
-        /**
-         * Renders the content of a single cell, adding data attributes for clicks.
-         */
-        function renderCell(value, dataAttributes) {
-          if (value === null) return "<i>null</i>";
-          
-          if (Array.isArray(value)) {
-            return \`<span class="clickable-cell" \${dataAttributes}>[ Array(\${value.length}) ]</span>\`;
-          } 
-          
-          if (typeof value === 'object' && value !== null) {
-            return \`<span class="clickable-cell" \${dataAttributes}>[ Object ]</span>\`;
-          }
-
-          if (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://'))) {
-             if (/\.(jpg|jpeg|png|gif|svg)$/i.test(value)) {
-                return \`<img src="\${value}" alt="image" style="max-width: 100px; max-height: 100px;">\`;
-             }
-             return \`<a href="\${value}" target="_blank">\${value}</a>\`;
-          }
-
-          return value;
-        }
         
-        /**
-         * Attaches click listeners to all clickable elements.
-         */
         function attachClickListeners() {
           tableContainer.querySelectorAll('.clickable-cell').forEach(cell => {
             cell.addEventListener('click', handleCellClick);
           });
-          
           tableContainer.querySelectorAll('.sortable-header').forEach(header => {
             header.addEventListener('click', handleSortClick);
           });
-          
           tableContainer.querySelectorAll('.filter-input').forEach(input => {
             const key = input.getAttribute('data-key');
             input.value = filterState[key] || '';
             input.addEventListener('input', handleFilterInput);
-            
             if (focusedInput && focusedInput.key === key) {
               input.focus();
               input.selectionStart = focusedInput.position;
@@ -453,58 +523,60 @@ function getWebviewContent(jsonContent: string): string {
             }
           });
           focusedInput = null;
-          
-          const toggleBtn = controlsContainer.querySelector('#toggle-columns-btn');
-          if (toggleBtn) {
-            toggleBtn.addEventListener('click', handleToggleColumnsClick);
-          }
-          
+          controlsContainer.querySelector('#toggle-columns-btn')?.addEventListener('click', handleToggleColumnsClick);
           controlsContainer.querySelectorAll('.column-toggle').forEach(checkbox => {
             checkbox.addEventListener('change', handleColumnToggleChange);
+          });
+          tableContainer.querySelectorAll('.editable-cell').forEach(cell => {
+            cell.addEventListener('dblclick', handleCellDoubleClick);
           });
         }
         
         /**
-         * Handles the click event on a nested object/array cell.
+         * Handles the clicl evnt on a nested object/array.
          */
         function handleCellClick(e) {
-          const target = e.target;
+          const target = e.target.closest('td');
           const key = target.getAttribute('data-key');
           const index = target.getAttribute('data-index');
           
           const currentData = navigationStack[navigationStack.length - 1].data;
-          
-          let newData;
-          let newName;
 
-          if (index !== null && key !== null) {
-            newData = currentData[index][key];
-            newName = key;
-          } else if (index !== null) {
-            newData = currentData[index];
-            newName = \`[\${index}]\`;
-          } else if (key !== null) {
-            newData = currentData[key];
-            newName = key;
-          } else {
-            return;
-          }
-          
+          // Reset state for *any* navigation
           sortState = { key: null, direction: 'asc' };
           filterState = {};
           hiddenColumns = new Set();
           allHeaders = [];
           isColumnsVisible = false;
-          navigationStack.push({ data: newData, name: newName });
+
+          if (index !== null && key !== null) { 
+            const objectData = currentData[index];
+            const objectName = \`[\${index}]\`;
+            navigationStack.push({ data: objectData, name: objectName });
+            
+            const finalData = objectData[key];
+            const finalName = key;
+            navigationStack.push({ data: finalData, name: finalName });
+            
+          } else if (index !== null) { 
+            const finalData = currentData[index]; 
+            const finalName = \`[\${index}]\`; 
+            navigationStack.push({ data: finalData, name: finalName });
+            
+          } else if (key !== null) { 
+            const finalData = currentData[key]; 
+            const finalName = key; 
+            navigationStack.push({ data: finalData, name: finalName });
+            
+          } else { 
+            return;
+          }
+          
           render();
         }
         
-        /**
-         * Handles the click event on a sortable header.
-         */
         function handleSortClick(e) {
           const newKey = e.currentTarget.getAttribute('data-key');
-          
           if (sortState.key === newKey) {
             sortState.direction = (sortState.direction === 'asc') ? 'desc' : 'asc';
           } else {
@@ -514,45 +586,75 @@ function getWebviewContent(jsonContent: string): string {
           render();
         }
         
-        /**
-         * Handles the 'input' event on a filter text box.
-         */
         function handleFilterInput(e) {
           const key = e.target.getAttribute('data-key');
           const value = e.target.value;
-          
-          if (value) {
-            filterState[key] = value;
-          } else {
-            delete filterState[key];
-          }
-          
+          if (value) { filterState[key] = value; } 
+          else { delete filterState[key]; }
           focusedInput = { key: key, position: e.target.selectionStart };
           render();
         }
         
-        /**
-         * Handles clicking the 'Columns' button.
-         */
         function handleToggleColumnsClick(e) {
           isColumnsVisible = !isColumnsVisible;
           render();
         }
         
-        /**
-         * Handles checking/unchecking a column toggle checkbox.
-         */
         function handleColumnToggleChange(e) {
           const key = e.target.getAttribute('data-key');
           const isChecked = e.target.checked;
-          
-          if (isChecked) {
-            hiddenColumns.delete(key);
-          } else {
-            hiddenColumns.add(key);
-          }
-          
+          if (isChecked) { hiddenColumns.delete(key); } 
+          else { hiddenColumns.add(key); }
           render();
+        }
+
+        let originalCellValue = null;
+
+        function handleCellDoubleClick(e) {
+          const cell = e.currentTarget;
+          if (cell.isContentEditable) return;
+          originalCellValue = cell.innerText;
+          cell.setAttribute('contenteditable', 'true');
+          cell.focus();
+          document.execCommand('selectAll', false, null);
+          cell.addEventListener('blur', handleCellBlur);
+          cell.addEventListener('keydown', handleCellKeydown);
+        }
+
+        function handleCellBlur(e) {
+          const cell = e.currentTarget;
+          cell.setAttribute('contenteditable', 'false');
+          cell.removeEventListener('blur', handleCellBlur);
+          cell.removeEventListener('keydown', handleCellKeydown);
+          const newValue = cell.innerText;
+          if (newValue !== originalCellValue) {
+            sendUpdate(cell, newValue);
+          }
+        }
+
+        function handleCellKeydown(e) {
+          const cell = e.currentTarget;
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            cell.blur();
+          } else if (e.key === 'Escape') {
+            cell.innerText = originalCellValue;
+            cell.blur();
+          }
+        }
+
+        function sendUpdate(cell, newValue) {
+          const key = cell.getAttribute('data-key');
+          const index = cell.getAttribute('data-index');
+          const path = navigationStack.map(item => item.name);
+          
+          vscode.postMessage({
+            command: 'updateValue',
+            path: path,
+            key: key,
+            index: index,
+            newValue: newValue
+          });
         }
 
         render();
@@ -563,9 +665,6 @@ function getWebviewContent(jsonContent: string): string {
 </html>`;
 }
 
-/**
- * Generates an errpr message for invalkid json.
- */
 function getErrorWebviewContent(error: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -582,5 +681,4 @@ function getErrorWebviewContent(error: string): string {
 </html>`;
 }
 
-// Deactivate aavambo
 export function deactivate() { }
