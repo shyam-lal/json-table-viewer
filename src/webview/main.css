@@ -1,0 +1,134 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 10px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: 600;
+}
+
+.clickable-cell {
+    color: #007acc;
+    cursor: pointer;
+    font-family: monospace;
+}
+
+.clickable-cell:hover {
+    text-decoration: underline;
+}
+
+.key-cell {
+    font-weight: 600;
+    width: 20%;
+}
+
+#breadcrumbs {
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.breadcrumb-link {
+    color: #007acc;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    margin: 0 5px;
+    color: #777;
+}
+
+.sortable-header {
+    cursor: pointer;
+}
+
+.sortable-header:hover {
+    background-color: #e8e8e8;
+}
+
+.sort-arrow {
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.filter-input {
+    width: 95%;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.filter-row td {
+    padding: 5px 8px;
+    background-color: #f8f8f8;
+}
+
+.no-results-row td {
+    text-align: center;
+    font-style: italic;
+    color: #777;
+    padding: 15px;
+}
+
+#controls-container {
+    margin-top: 15px;
+}
+
+.control-btn {
+    padding: 8px 12px;
+    border: 1px solid #007acc;
+    background-color: #007acc;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.control-btn:hover {
+    background-color: #005f9e;
+}
+
+#columns-container {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 4px;
+    column-count: 4;
+}
+
+#columns-container label {
+    display: block;
+}
+
+.editable-cell {
+    cursor: text;
+}
+
+.editable-cell:hover {
+    background-color: #f5f5ff;
+}
+
+[contenteditable="true"] {
+    background-color: #fff;
+    box-shadow: 0 0 2px 1px #007acc;
+    outline: none;
+}
