@@ -3,11 +3,31 @@
   "displayName": "JSON Table Viewer",
   "description": "Preview JSON files as an interactive table.",
   "version": "0.0.1",
+  "publisher": "f861cd31-c5b6-6113-bdf4-f96f25e538dd",
+  "icon": "logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shyam-lal/json-table-viewer.git"
+  },
+  "homepage": "https://github.com/shyam-lal/json-table-viewer/blob/main/README.md",
   "engines": {
     "vscode": "^1.83.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Data",
+    "Visualization"
+  ],
+  "keywords": [
+    "json",
+    "table",
+    "viewer",
+    "editor",
+    "csv",
+    "excel",
+    "export",
+    "grid",
+    "preview"
   ],
   "activationEvents": [
     "onLanguage:json"

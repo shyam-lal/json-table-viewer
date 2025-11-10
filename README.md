@@ -1,71 +1,41 @@
-# json-table-viewer README
+# JSON Table Editor for VS Code
 
-This is the README for your extension "json-table-viewer". After writing up a brief description, we recommend including the following sections.
+<!-- [![Version](https://img.shields.io/visual-studio-marketplace/v/your-publisher-id.json-table-viewer)](https://marketplace.visualstudio.com/items?itemName=your-publisher-id.json-table-viewer)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/your-publisher-id.json-table-viewer)](https://marketplace.visualstudio.com/items?itemName=your-publisher-id.json-table-viewer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) -->
+
+Stop squinting at raw, minified JSON. This extension provides a simple, interactive table view for your `.json` files, complete with editing, filtering, and powerful export tools.
+
+<!-- ![GIF of the JSON Table Editor in action](https...placeholder-for-your-demo-gif...png) -->
+
+## Why?
+
+Working with large JSON arrays (like API responses or data dumps) is a pain. It's hard to read, hard to compare items, and almost impossible to edit safely. This tool provides a clean, spreadsheet-like interface to make that process simple, all without leaving VS Code.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+* **⚡ Two-Way Editing:** The killer feature. Edit a value in the table, press Enter, and your `.json` file is **instantly updated and reformatted**. It works both ways—edit the text file, and the table view syncs automatically.
+* **Navigate Nested Data:** Don't just see `[Object]` or `[Array]`. Click on any nested item to "drill down" and open it in a new, fully interactive table with breadcrumbs.
+* **Analyze Data Quickly:**
+    * **Sort** any column (A-Z, Z-A, 1-9, 9-1).
+    * **Filter** by any column to find the data you need.
+    * **Show/Hide Columns** to hide noisy data and focus on what matters.
+* **Smart Export Tools:**
+    * **Export to CSV:** Instantly export your current filtered/sorted view to a `.csv` file.
+    * **Smart Export to XLSX:** Generates a relational, multi-sheet Excel file. Nested objects (`address`) and arrays (`tags`, `friends`) are automatically "un-nested" into their own sheets with a `_rowId` to link them back to the main data.
+* **Theme Aware:** The UI automatically adapts to your current VS Code theme for a native, clean look.
+* **Zero-Config:** Just open a `.json` file and click the icon.
 
-For example if there is an image subfolder under your extension project workspace:
+## How to Use
 
-\!\[feature X\]\(images/feature-x.png\)
+1.  Open any `.json` or `.jsonc` file in VS Code.
+2.  Click the "Preview JSON as Table" icon (a small table) in the editor's title bar.
+3.  That's it. Your data is now in an interactive table.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Feedback & Contributing
 
-## Requirements
+Find a bug? Have a feature request? Feel free to [open an issue](https://github.com/shyam-lal/json-table-viewer/issues) on the GitHub repo.
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## License
 
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+[MIT](https://opensource.org/licenses/MIT)

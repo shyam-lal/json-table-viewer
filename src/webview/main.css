@@ -1,6 +1,32 @@
+:root {
+    /* VS Code Theme Colors */
+    --vscode-editor-background: var(--vscode-editor-background, #ffffff);
+    --vscode-editor-foreground: var(--vscode-editor-foreground, #333333);
+    --vscode-sideBar-background: var(--vscode-sideBar-background, #f8f8f8);
+    --vscode-list-hoverBackground: var(--vscode-list-hoverBackground, #f0f0f0);
+    --vscode-focusBorder: var(--vscode-focusBorder, #007acc);
+    --vscode-contrastBorder: var(--vscode-contrastBorder, #d4d4d4);
+    --vscode-input-background: var(--vscode-input-background, #ffffff);
+    --vscode-input-border: var(--vscode-input-border, #ccc);
+    --vscode-button-background: var(--vscode-button-background, #007acc);
+    --vscode-button-foreground: var(--vscode-button-foreground, #ffffff);
+    --vscode-button-hoverBackground: var(--vscode-button-hoverBackground, #005f9e);
+    --vscode-textLink-foreground: var(--vscode-textLink-foreground, #007acc);
+
+    /* Custom App Colors (derived from above) */
+    --link-color: var(--vscode-textLink-foreground);
+    --table-header-bg: var(--vscode-sideBar-background);
+    --table-border-color: var(--vscode-contrastBorder);
+    --filter-row-bg: var(--vscode-sideBar-background);
+    --editable-hover-bg: var(--vscode-list-hoverBackground);
+    --editable-focus-shadow: var(--vscode-focusBorder);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     padding: 10px;
+    background-color: var(--vscode-editor-background);
+    color: var(--vscode-editor-foreground);
 }
 
 table {
@@ -11,19 +37,19 @@ table {
 
 th,
 td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--table-border-color);
     padding: 8px;
     text-align: left;
     vertical-align: top;
 }
 
 th {
-    background-color: #f2f2f2;
+    background-color: var(--table-header-bg);
     font-weight: 600;
 }
 
 .clickable-cell {
-    color: #007acc;
+    color: var(--link-color);
     cursor: pointer;
     font-family: monospace;
 }
@@ -43,7 +69,7 @@ th {
 }
 
 .breadcrumb-link {
-    color: #007acc;
+    color: var(--link-color);
     cursor: pointer;
     text-decoration: none;
 }
@@ -62,7 +88,7 @@ th {
 }
 
 .sortable-header:hover {
-    background-color: #e8e8e8;
+    background-color: var(--vscode-list-hoverBackground);
 }
 
 .sort-arrow {
@@ -73,13 +99,20 @@ th {
 .filter-input {
     width: 95%;
     padding: 4px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--vscode-input-border);
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-editor-foreground);
     border-radius: 4px;
+}
+
+.filter-input:focus {
+    border-color: var(--vscode-focusBorder);
+    outline: none;
 }
 
 .filter-row td {
     padding: 5px 8px;
-    background-color: #f8f8f8;
+    background-color: var(--filter-row-bg);
 }
 
 .no-results-row td {
@@ -93,22 +126,57 @@ th {
     margin-top: 15px;
 }
 
+/* --- THIS IS THE UPDATED BUTTON STYLE --- */
 .control-btn {
-    padding: 8px 12px;
-    border: 1px solid #007acc;
-    background-color: #007acc;
-    color: white;
-    border-radius: 4px;
+    /* Structure & Spacing */
+    padding: 6px 14px;
+    /* More standard button padding */
+    margin-right: 8px;
+    border-radius: 5px;
+    /* Slightly rounder */
+
+    /* Font */
+    font-size: 13px;
+    /* Match VS Code UI */
+    font-weight: 600;
+    line-height: 20px;
+
+    /* Appearance */
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: 1px solid var(--vscode-contrastBorder, transparent);
+    /* Use contrast border */
     cursor: pointer;
-    margin-right: 10px;
+
+    /* Effects */
+    transition: all 0.1s ease-in-out;
+    outline: 1px solid transparent;
+    outline-offset: 2px;
 }
 
 .control-btn:hover {
-    background-color: #005f9e;
+    background-color: var(--vscode-button-hoverBackground);
+    border-color: var(--vscode-contrastBorder);
 }
 
+.control-btn:focus,
+.control-btn:active {
+    /* Show focus ring */
+    outline: 1px solid var(--vscode-focusBorder);
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.control-btn:active {
+    /* A subtle "pushed in" effect */
+    transform: scale(0.98);
+}
+
+/* --- END OF BUTTON STYLE --- */
+
+
 #columns-container {
-    border: 1px solid #ddd;
+    border: 1px solid var(--table-border-color);
+    background-color: var(--vscode-editor-background);
     padding: 10px;
     margin-top: 10px;
     border-radius: 4px;
@@ -124,11 +192,11 @@ th {
 }
 
 .editable-cell:hover {
-    background-color: #f5f5ff;
+    background-color: var(--editable-hover-bg);
 }
 
 [contenteditable="true"] {
-    background-color: #fff;
-    box-shadow: 0 0 2px 1px #007acc;
+    background-color: var(--vscode-editor-background);
+    box-shadow: 0 0 2px 1px var(--editable-focus-shadow);
     outline: none;
 }
