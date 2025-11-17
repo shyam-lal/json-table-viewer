@@ -17,9 +17,22 @@
     let allHeaders = [];
     let isColumnsVisible = false;
 
+    // Search state
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+
     const breadcrumbContainer = document.getElementById('breadcrumbs');
     const tableContainer = document.getElementById('table-container');
     const controlsContainer = document.getElementById('controls-container');
+
+    // SEarch elemts (Search button vrithi aakkanam)
+    const showSearchBtn = document.getElementById('show-search-btn');
+    const searchContainer = document.getElementById('search-container');
+    const searchInput = document.getElementById('search-input');
+    const searchCounter = document.getElementById('search-counter');
+    const searchPrevBtn = document.getElementById('search-prev-btn');
+    const searchNextBtn = document.getElementById('search-next-btn');
+    const searchCloseBtn = document.getElementById('search-close-btn');
 
     window.addEventListener('message', event => {
         const message = event.data;
@@ -44,6 +57,7 @@
     });
 
     function render() {
+        clearSearch();
         const currentView = navigationStack[navigationStack.length - 1];
         const currentData = currentView.data;
         renderBreadcrumbs();
@@ -102,6 +116,15 @@
                     <button id="toggle-columns-btn" class="control-btn">Columns</button>
                     <div id="columns-container" style="display: ${displayStyle};">`;
 
+        const allChecked = hiddenColumns.size === 0;
+        html += `<label style="font-weight: bold; display: block;">
+                   <input type="checkbox" id="toggle-all-columns-btn" ${allChecked ? 'checked' : ''}>
+                   ALL
+                 </label>
+                 <hr style="margin: 8px 0;">`;
+
+        html += `<div id="column-checkbox-list">`;
+
         allHeaders.forEach(header => {
             const isChecked = !hiddenColumns.has(header);
             html += `<label>
@@ -109,6 +132,8 @@
                        ${header}
                      </label>`;
         });
+
+        html += `</div>`;
         html += `</div>`;
         controlsContainer.innerHTML = html;
     }
@@ -188,7 +213,7 @@
             html += "</tr>";
             html += "<tr class='filter-row'><td class='key-cell'></td>";
             visibleHeaders.forEach(header => {
-                html += `<td><input type="text" class="filter-input" data-key="${header}" placeholder="Filter..."></td>`;
+                html += `<td><input type="text" class="filter-input control-input" data-key="${header}" placeholder="Filter..."></td>`;
             });
             html += "</tr>";
             if (array.length === 0) {
@@ -269,6 +294,7 @@
         controlsContainer.querySelectorAll('.column-toggle').forEach(checkbox => {
             checkbox.addEventListener('change', handleColumnToggleChange);
         });
+        controlsContainer.querySelector('#toggle-all-columns-btn')?.addEventListener('change', handleToggleAllColumnsChange);
         tableContainer.querySelectorAll('.editable-cell').forEach(cell => {
             cell.addEventListener('dblclick', handleCellDoubleClick);
         });
@@ -337,6 +363,16 @@
         const isChecked = e.target.checked;
         if (isChecked) { hiddenColumns.delete(key); }
         else { hiddenColumns.add(key); }
+        render();
+    }
+
+    function handleToggleAllColumnsChange(e) {
+        const isChecked = e.target.checked;
+        if (isChecked) {
+            hiddenColumns.clear();
+        } else {
+            allHeaders.forEach(header => hiddenColumns.add(header));
+        }
         render();
     }
 
@@ -437,7 +473,141 @@
         });
     }
 
-    // frst rnder
+    // Search fns
+
+    function showSearch() {
+        showSearchBtn.style.display = 'none';
+        searchContainer.style.display = 'flex';
+        searchInput.focus();
+        searchInput.select();
+    }
+
+    function hideSearch() {
+        searchContainer.style.display = 'none';
+        showSearchBtn.style.display = 'block';
+        clearSearch();
+    }
+
+    function clearSearch() {
+        searchMatches.forEach(cell => {
+            cell.classList.remove('search-highlight');
+            cell.classList.remove('search-highlight-current');
+        });
+        searchMatches = [];
+        currentMatchIndex = -1;
+        searchCounter.textContent = '0 / 0';
+        if (searchContainer.style.display === 'none') {
+            showSearchBtn.style.display = 'block';
+        }
+    }
+
+    function performSearch() {
+        const query = searchInput.value;
+        clearSearch();
+        if (query.length === 0) {
+            return;
+        }
+
+        const queryLower = query.toLowerCase();
+        const cells = tableContainer.querySelectorAll('td, th');
+
+        cells.forEach(cell => {
+            if (cell.querySelector('input.filter-input')) {
+                return;
+            }
+            if (cell.innerText.toLowerCase().includes(queryLower)) {
+                cell.classList.add('search-highlight');
+                searchMatches.push(cell);
+            }
+        });
+
+        if (searchMatches.length > 0) {
+            currentMatchIndex = 0;
+            updateCurrentMatchHighlight();
+        }
+        updateSearchCounter();
+    }
+
+    function updateCurrentMatchHighlight() {
+        searchMatches.forEach((cell, index) => {
+            if (index === currentMatchIndex) {
+                cell.classList.add('search-highlight-current');
+                cell.classList.remove('search-highlight');
+                cell.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            } else {
+                cell.classList.remove('search-highlight-current');
+                cell.classList.add('search-highlight');
+            }
+        });
+    }
+
+    function updateSearchCounter() {
+        if (searchMatches.length === 0) {
+            searchCounter.textContent = '0 / 0';
+        } else {
+            searchCounter.textContent = `${currentMatchIndex + 1} / ${searchMatches.length}`;
+        }
+    }
+
+    function navigateToNextMatch() {
+        if (searchMatches.length === 0) return;
+        currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+        updateCurrentMatchHighlight();
+        updateSearchCounter();
+    }
+
+    function navigateToPrevMatch() {
+        if (searchMatches.length === 0) return;
+        currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+        updateCurrentMatchHighlight();
+        updateSearchCounter();
+    }
+
+    // Search event (cacncel pinne cheyyam)
+
+    window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            showSearch();
+        }
+        if (e.key === 'Escape') {
+            if (searchContainer.style.display === 'flex') {
+                hideSearch();
+            }
+        }
+    });
+
+    // Search button (pinne mattam)
+    showSearchBtn.addEventListener('click', showSearch);
+
+    searchInput.addEventListener('input', performSearch);
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                navigateToPrevMatch();
+            } else {
+                navigateToNextMatch();
+            }
+        }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            navigateToNextMatch();
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            navigateToPrevMatch();
+        }
+    });
+
+    searchNextBtn.addEventListener('click', navigateToNextMatch);
+    searchPrevBtn.addEventListener('click', navigateToPrevMatch);
+    searchCloseBtn.addEventListener('click', hideSearch);
+
+    //
+    // Search end
+
     render();
 
 }());

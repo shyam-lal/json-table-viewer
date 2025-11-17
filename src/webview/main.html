@@ -8,14 +8,29 @@
     <meta http-equiv="Content-Security-Policy" content="__CSP_SOURCE__">
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON Table Preview</title>
+    <title>SMART JSON VIEWER</title>
 
     <link rel="stylesheet" href="__STYLE_URI__">
 </head>
 
 <body data-json="__JSON_DATA__">
-    <h1>JSON Table Preview</h1>
 
+    <div id="header-container">
+        <h1>SMART JSON VIEWER</h1>
+
+        <div id="header-controls">
+            <button id="show-search-btn" class="control-btn search-nav-btn" title="Search (Ctrl+F)">
+                &#128269; </button>
+
+            <div id="search-container">
+                <input type="text" id="search-input" class="control-input" placeholder="Search...">
+                <span id="search-counter">0 / 0</span>
+                <button id="search-prev-btn" class="control-btn search-nav-btn">▲</button>
+                <button id="search-next-btn" class="control-btn search-nav-btn">▼</button>
+                <button id="search-close-btn" class="control-btn search-nav-btn">✕</button>
+            </div>
+        </div>
+    </div>
     <div id="breadcrumbs"></div>
     <div id="controls-container"></div>
     <div id="table-container"></div>

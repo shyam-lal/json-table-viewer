@@ -12,6 +12,9 @@
     --vscode-button-foreground: var(--vscode-button-foreground, #ffffff);
     --vscode-button-hoverBackground: var(--vscode-button-hoverBackground, #005f9e);
     --vscode-textLink-foreground: var(--vscode-textLink-foreground, #007acc);
+    /* NEW: Search Highlight Colors */
+    --vscode-editor-findMatchHighlightBackground: var(--vscode-editor-findMatchHighlightBackground, #ea5c0055);
+    --vscode-editor-findMatchBackground: var(--vscode-editor-findMatchBackground, #ffdf0066);
 
     /* Custom App Colors (derived from above) */
     --link-color: var(--vscode-textLink-foreground);
@@ -28,6 +31,80 @@ body {
     background-color: var(--vscode-editor-background);
     color: var(--vscode-editor-foreground);
 }
+
+/* --- NEW: Header and Search Bar --- */
+#header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#header-container h1 {
+    margin: 0;
+    /* Remove default H1 margin */
+    font-size: 1.5em;
+}
+
+/* NEW: Wrapper for search icon and search bar */
+#header-controls {
+    display: flex;
+    align-items: center;
+}
+
+/* NEW: Style for the "show search" icon button */
+#show-search-btn {
+    padding: 2px 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    /* Remove right margin */
+}
+
+#search-container {
+    display: none;
+    /* Hidden by default */
+    align-items: center;
+    gap: 6px;
+    background-color: var(--vscode-sideBar-background, #f8f8f8);
+    border: 1px solid var(--vscode-contrastBorder, #d4d4d4);
+    border-radius: 5px;
+    padding: 4px;
+}
+
+/* A generic input style for search/filter */
+.control-input {
+    padding: 4px;
+    border: 1px solid var(--vscode-input-border);
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-editor-foreground);
+    border-radius: 4px;
+}
+
+.control-input:focus {
+    border-color: var(--vscode-focusBorder);
+    outline: none;
+}
+
+#search-input {
+    width: 200px;
+}
+
+#search-counter {
+    font-size: 0.9em;
+    padding: 0 5px;
+    color: var(--vscode-editor-foreground);
+}
+
+.search-nav-btn {
+    padding: 2px 8px;
+    /* Make nav buttons smaller */
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* --- END: Header and Search Bar --- */
+
 
 table {
     border-collapse: collapse;
@@ -98,16 +175,8 @@ th {
 
 .filter-input {
     width: 95%;
-    padding: 4px;
-    border: 1px solid var(--vscode-input-border);
-    background-color: var(--vscode-input-background);
-    color: var(--vscode-editor-foreground);
-    border-radius: 4px;
-}
-
-.filter-input:focus {
-    border-color: var(--vscode-focusBorder);
-    outline: none;
+    /* Use the generic class */
+    composes: control-input;
 }
 
 .filter-row td {
@@ -126,14 +195,11 @@ th {
     margin-top: 15px;
 }
 
-/* --- THIS IS THE UPDATED BUTTON STYLE --- */
 .control-btn {
     /* Structure & Spacing */
     padding: 6px 14px;
-    /* More standard button padding */
     margin-right: 8px;
     border-radius: 5px;
-    /* Slightly rounder */
 
     /* Font */
     font-size: 13px;
@@ -141,11 +207,10 @@ th {
     font-weight: 600;
     line-height: 20px;
 
-    /* Appearance */
-    background-color: var(--vscode-button-background);
-    color: var(--vscode-button-foreground);
-    border: 1px solid var(--vscode-contrastBorder, transparent);
-    /* Use contrast border */
+    /* Appearance (NEW) */
+    background-color: var(--vscode-input-background, var(--vscode-sideBar-background, #f8f8f8));
+    color: var(--vscode-editor-foreground, #333333);
+    border: 1px solid var(--vscode-contrastBorder, #d4d4d4);
     cursor: pointer;
 
     /* Effects */
@@ -155,23 +220,19 @@ th {
 }
 
 .control-btn:hover {
-    background-color: var(--vscode-button-hoverBackground);
+    background-color: var(--vscode-list-hoverBackground, #f0f0f0);
     border-color: var(--vscode-contrastBorder);
 }
 
-.control-btn:focus,
-.control-btn:active {
-    /* Show focus ring */
+.control-btn:focus {
     outline: 1px solid var(--vscode-focusBorder);
-    background-color: var(--vscode-button-hoverBackground);
 }
 
 .control-btn:active {
-    /* A subtle "pushed in" effect */
-    transform: scale(0.98);
+    background-color: var(--vscode-list-hoverBackground, #f0f0f0);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    outline: 1px solid var(--vscode-focusBorder);
 }
-
-/* --- END OF BUTTON STYLE --- */
 
 
 #columns-container {
@@ -180,10 +241,13 @@ th {
     padding: 10px;
     margin-top: 10px;
     border-radius: 4px;
+}
+
+#column-checkbox-list {
     column-count: 4;
 }
 
-#columns-container label {
+#column-checkbox-list label {
     display: block;
 }
 
@@ -199,4 +263,15 @@ th {
     background-color: var(--vscode-editor-background);
     box-shadow: 0 0 2px 1px var(--editable-focus-shadow);
     outline: none;
+}
+
+/* --- NEW: Search Highlight Styles --- */
+.search-highlight {
+    background-color: var(--vscode-editor-findMatchBackground);
+    outline: 1px solid var(--vscode-editor-findMatchHighlightBackground);
+}
+
+.search-highlight-current {
+    background-color: var(--vscode-editor-findMatchHighlightBackground);
+    outline: 1px solid var(--vscode-editor-findMatchBackground);
 }
