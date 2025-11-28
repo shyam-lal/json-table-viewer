@@ -2,7 +2,7 @@
   "name": "smart-json-editor",
   "displayName": "Smart JSON Editor",
   "description": "A smart JSON viewer, editor, and exporter. View and edit JSON files in an interactive table or grid. Sort, filter, and export to CSV.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "publisher": "lal",
   "icon": "logo.png",
   "repository": {
