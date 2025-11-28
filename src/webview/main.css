@@ -12,17 +12,23 @@
     --vscode-button-foreground: var(--vscode-button-foreground, #ffffff);
     --vscode-button-hoverBackground: var(--vscode-button-hoverBackground, #005f9e);
     --vscode-textLink-foreground: var(--vscode-textLink-foreground, #007acc);
-    /* NEW: Search Highlight Colors */
+    --vscode-descriptionForeground: var(--vscode-descriptionForeground, #717171);
+
     --vscode-editor-findMatchHighlightBackground: var(--vscode-editor-findMatchHighlightBackground, #ea5c0055);
     --vscode-editor-findMatchBackground: var(--vscode-editor-findMatchBackground, #ffdf0066);
 
-    /* Custom App Colors (derived from above) */
     --link-color: var(--vscode-textLink-foreground);
     --table-header-bg: var(--vscode-sideBar-background);
     --table-border-color: var(--vscode-contrastBorder);
     --filter-row-bg: var(--vscode-sideBar-background);
     --editable-hover-bg: var(--vscode-list-hoverBackground);
     --editable-focus-shadow: var(--vscode-focusBorder);
+
+    --json-key: var(--vscode-editor-foreground);
+    --json-string: #ce9178;
+    --json-number: #b5cea8;
+    --json-boolean: #569cd6;
+    --json-null: #569cd6;
 }
 
 body {
@@ -32,7 +38,6 @@ body {
     color: var(--vscode-editor-foreground);
 }
 
-/* --- NEW: Header and Search Bar --- */
 #header-container {
     display: flex;
     justify-content: space-between;
@@ -42,28 +47,23 @@ body {
 
 #header-container h1 {
     margin: 0;
-    /* Remove default H1 margin */
     font-size: 1.5em;
 }
 
-/* NEW: Wrapper for search icon and search bar */
 #header-controls {
     display: flex;
     align-items: center;
 }
 
-/* NEW: Style for the "show search" icon button */
 #show-search-btn {
     padding: 2px 8px;
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
-    /* Remove right margin */
 }
 
 #search-container {
     display: none;
-    /* Hidden by default */
     align-items: center;
     gap: 6px;
     background-color: var(--vscode-sideBar-background, #f8f8f8);
@@ -72,7 +72,6 @@ body {
     padding: 4px;
 }
 
-/* A generic input style for search/filter */
 .control-input {
     padding: 4px;
     border: 1px solid var(--vscode-input-border);
@@ -98,13 +97,9 @@ body {
 
 .search-nav-btn {
     padding: 2px 8px;
-    /* Make nav buttons smaller */
     font-size: 12px;
     line-height: 1.5;
 }
-
-/* --- END: Header and Search Bar --- */
-
 
 table {
     border-collapse: collapse;
@@ -175,7 +170,6 @@ th {
 
 .filter-input {
     width: 95%;
-    /* Use the generic class */
     composes: control-input;
 }
 
@@ -193,27 +187,23 @@ th {
 
 #controls-container {
     margin-top: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .control-btn {
-    /* Structure & Spacing */
-    padding: 6px 14px;
+    padding: 6px 16px;
     margin-right: 8px;
-    border-radius: 5px;
+    border-radius: 20px;
 
-    /* Font */
     font-size: 13px;
-    /* Match VS Code UI */
     font-weight: 600;
     line-height: 20px;
-
-    /* Appearance (NEW) */
     background-color: var(--vscode-input-background, var(--vscode-sideBar-background, #f8f8f8));
     color: var(--vscode-editor-foreground, #333333);
     border: 1px solid var(--vscode-contrastBorder, #d4d4d4);
     cursor: pointer;
-
-    /* Effects */
     transition: all 0.1s ease-in-out;
     outline: 1px solid transparent;
     outline-offset: 2px;
@@ -234,6 +224,42 @@ th {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
+.toggle-container {
+    display: inline-flex;
+    background-color: var(--vscode-input-background);
+    padding: 4px;
+    border-radius: 20px;
+    border: 1px solid var(--vscode-contrastBorder, transparent);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-left: auto;
+    gap: 2px;
+}
+
+.toggle-option {
+    padding: 4px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.toggle-option:hover {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.toggle-option.selected {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02);
+}
 
 #columns-container {
     border: 1px solid var(--table-border-color);
@@ -241,6 +267,7 @@ th {
     padding: 10px;
     margin-top: 10px;
     border-radius: 4px;
+    width: 100%;
 }
 
 #column-checkbox-list {
@@ -265,7 +292,6 @@ th {
     outline: none;
 }
 
-/* --- NEW: Search Highlight Styles --- */
 .search-highlight {
     background-color: var(--vscode-editor-findMatchBackground);
     outline: 1px solid var(--vscode-editor-findMatchHighlightBackground);
@@ -274,4 +300,84 @@ th {
 .search-highlight-current {
     background-color: var(--vscode-editor-findMatchHighlightBackground);
     outline: 1px solid var(--vscode-editor-findMatchBackground);
+}
+
+#tree-container {
+    margin-top: 15px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.tree-root,
+.tree-nested {
+    list-style-type: none;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.tree-root {
+    padding-left: 0;
+}
+
+.tree-item {
+    cursor: default;
+}
+
+.tree-toggler {
+    cursor: pointer;
+    user-select: none;
+    display: inline-block;
+    width: 12px;
+    color: var(--vscode-editor-foreground);
+    opacity: 0.7;
+    margin-right: 5px;
+    transition: transform 0.1s;
+}
+
+.tree-toggler.down {
+    transform: rotate(90deg);
+}
+
+.tree-toggler.leaf {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tree-key {
+    color: var(--vscode-editor-foreground);
+    font-weight: bold;
+}
+
+.tree-val-editable {
+    cursor: text;
+    padding: 0 2px;
+    border-radius: 2px;
+    transition: background-color 0.1s;
+}
+
+.tree-val-editable:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    outline: 1px dashed var(--vscode-contrastBorder, #ccc);
+}
+
+.tree-val-string {
+    color: var(--json-string);
+}
+
+.tree-val-number {
+    color: var(--json-number);
+}
+
+.tree-val-bool {
+    color: var(--json-boolean);
+}
+
+.tree-val-null {
+    color: var(--json-null);
+}
+
+.tree-val-array-label {
+    opacity: 0.6;
+    font-style: italic;
 }

@@ -17,15 +17,18 @@
     let allHeaders = [];
     let isColumnsVisible = false;
 
+    // View Mode State
+    let viewMode = 'table'; // 'table' | 'tree'
+
     // Search state
     let searchMatches = [];
     let currentMatchIndex = -1;
 
     const breadcrumbContainer = document.getElementById('breadcrumbs');
     const tableContainer = document.getElementById('table-container');
+    const treeContainer = document.getElementById('tree-container');
     const controlsContainer = document.getElementById('controls-container');
 
-    // SEarch elemts (Search button vrithi aakkanam)
     const showSearchBtn = document.getElementById('show-search-btn');
     const searchContainer = document.getElementById('search-container');
     const searchInput = document.getElementById('search-input');
@@ -60,12 +63,32 @@
         clearSearch();
         const currentView = navigationStack[navigationStack.length - 1];
         const currentData = currentView.data;
+
         renderBreadcrumbs();
         renderControls(currentData);
-        const filteredData = applyFiltering(currentData);
-        const sortedData = applySorting(filteredData);
-        renderData(sortedData, currentData);
-        attachClickListeners();
+
+        if (viewMode === 'table') {
+            tableContainer.style.display = 'block';
+            treeContainer.style.display = 'none';
+
+            const filteredData = applyFiltering(currentData);
+            const sortedData = applySorting(filteredData);
+            renderData(sortedData, currentData);
+            attachClickListeners(); // For Table
+        } else {
+            tableContainer.style.display = 'none';
+            treeContainer.style.display = 'block';
+
+            treeContainer.innerHTML = '';
+            const treeRoot = document.createElement('ul');
+            treeRoot.className = 'tree-root';
+
+            const itemLi = buildTreeItem(undefined, rootData, ['root']);
+            treeRoot.appendChild(itemLi);
+            treeContainer.appendChild(treeRoot);
+
+            attachTreeListeners();
+        }
     }
 
     function renderBreadcrumbs() {
@@ -97,10 +120,10 @@
 
     function renderControls(data) {
         if (!Array.isArray(data) || data.length === 0 || typeof data[0] !== 'object' || data[0] === null) {
-            controlsContainer.innerHTML = '';
-            return;
+            // todo: logic for empty data
         }
-        if (allHeaders.length === 0) {
+
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && allHeaders.length === 0) {
             const headers = new Set();
             data.forEach(item => {
                 if (typeof item === 'object' && item !== null) {
@@ -109,34 +132,247 @@
             });
             allHeaders = Array.from(headers);
         }
+
         const displayStyle = isColumnsVisible ? 'block' : 'none';
+        const isTable = viewMode === 'table';
 
-        let html = `<button id="export-csv-btn" class="control-btn">Export to CSV</button>
-                    <button id="export-xlsx-btn" class="control-btn">Export to XLSX</button>
-                    <button id="toggle-columns-btn" class="control-btn">Columns</button>
-                    <div id="columns-container" style="display: ${displayStyle};">`;
+        let html = ``;
 
-        const allChecked = hiddenColumns.size === 0;
-        html += `<label style="font-weight: bold; display: block;">
-                   <input type="checkbox" id="toggle-all-columns-btn" ${allChecked ? 'checked' : ''}>
-                   ALL
-                 </label>
-                 <hr style="margin: 8px 0;">`;
+        if (isTable) {
+            html += `<button id="export-csv-btn" class="control-btn">Export to CSV</button>
+                     <button id="export-xlsx-btn" class="control-btn">Export to XLSX</button>
+                     <button id="toggle-columns-btn" class="control-btn">Columns</button>`;
+        }
 
-        html += `<div id="column-checkbox-list">`;
+        html += `<div class="toggle-container">
+                    <div id="view-mode-table" class="toggle-option ${isTable ? 'selected' : ''}">
+                        Table
+                    </div>
+                    <div id="view-mode-tree" class="toggle-option ${!isTable ? 'selected' : ''}">
+                        Tree
+                    </div>
+                 </div>`;
 
-        allHeaders.forEach(header => {
-            const isChecked = !hiddenColumns.has(header);
-            html += `<label>
-                       <input type="checkbox" class="column-toggle" data-key="${header}" ${isChecked ? 'checked' : ''}>
-                       ${header}
-                     </label>`;
-        });
+        if (isTable) {
+            html += `<div id="columns-container" style="display: ${displayStyle}; width: 100%;">`;
+            const allChecked = hiddenColumns.size === 0;
+            html += `<label style="font-weight: bold; display: block;">
+                    <input type="checkbox" id="toggle-all-columns-btn" ${allChecked ? 'checked' : ''}>
+                    ALL
+                    </label>
+                    <hr style="margin: 8px 0;">`;
 
-        html += `</div>`;
-        html += `</div>`;
+            html += `<div id="column-checkbox-list">`;
+            allHeaders.forEach(header => {
+                const isChecked = !hiddenColumns.has(header);
+                html += `<label>
+                        <input type="checkbox" class="column-toggle" data-key="${header}" ${isChecked ? 'checked' : ''}>
+                        ${header}
+                        </label>`;
+            });
+            html += `</div>`;
+            html += `</div>`;
+        }
+
         controlsContainer.innerHTML = html;
+
+        if (isTable) {
+            controlsContainer.querySelector('#toggle-columns-btn')?.addEventListener('click', handleToggleColumnsClick);
+            controlsContainer.querySelectorAll('.column-toggle').forEach(checkbox => {
+                checkbox.addEventListener('change', handleColumnToggleChange);
+            });
+            controlsContainer.querySelector('#toggle-all-columns-btn')?.addEventListener('change', handleToggleAllColumnsChange);
+            controlsContainer.querySelector('#export-csv-btn')?.addEventListener('click', handleExportCsvClick);
+            controlsContainer.querySelector('#export-xlsx-btn')?.addEventListener('click', handleExportXlsxClick);
+        }
+
+        // Attach View Mode listeners
+        document.getElementById('view-mode-table').addEventListener('click', () => {
+            if (viewMode !== 'table') {
+                viewMode = 'table';
+                render();
+            }
+        });
+        document.getElementById('view-mode-tree').addEventListener('click', () => {
+            if (viewMode !== 'tree') {
+                viewMode = 'tree';
+                render();
+            }
+        });
     }
+
+    function buildTreeItem(key, value, path) {
+        const li = document.createElement('li');
+        li.className = 'tree-item';
+
+        const isObj = typeof value === 'object' && value !== null;
+        const isArray = Array.isArray(value);
+        const isStructure = isObj || isArray;
+
+        const toggler = document.createElement('span');
+        toggler.className = 'tree-toggler';
+        if (isStructure) {
+            toggler.innerHTML = '&#9654;';
+            toggler.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const childUl = li.querySelector('ul');
+                if (childUl) {
+                    const isClosed = childUl.style.display === 'none';
+                    childUl.style.display = isClosed ? 'block' : 'none';
+                    toggler.classList.toggle('down', isClosed);
+                }
+            });
+        } else {
+            toggler.classList.add('leaf');
+        }
+        li.appendChild(toggler);
+
+        // Key display
+        if (key !== undefined && key !== null) {
+            const keySpan = document.createElement('span');
+            keySpan.className = 'tree-key';
+            keySpan.textContent = key + ': ';
+            li.appendChild(keySpan);
+        }
+
+        // Value display
+        if (isStructure) {
+            const summary = document.createElement('span');
+            summary.className = 'tree-val-array-label';
+            if (isArray) {
+                summary.textContent = `Array(${value.length})`;
+            } else {
+                summary.textContent = '{ ... }';
+            }
+            li.appendChild(summary);
+
+            const ul = document.createElement('ul');
+            ul.className = 'tree-nested';
+            ul.style.display = 'none';
+
+            const keys = Object.keys(value);
+            keys.forEach(k => {
+                let nextPath;
+                if (isArray) {
+                    nextPath = [...path, `[${k}]`];
+                } else {
+                    nextPath = [...path, k];
+                }
+                ul.appendChild(buildTreeItem(k, value[k], nextPath));
+            });
+            li.appendChild(ul);
+
+            const toggleFn = () => {
+                const isClosed = ul.style.display === 'none';
+                ul.style.display = isClosed ? 'block' : 'none';
+                toggler.classList.toggle('down', isClosed);
+            };
+            summary.addEventListener('click', toggleFn);
+
+        } else {
+            const valSpan = document.createElement('span');
+            let displayVal = JSON.stringify(value);
+            if (value === undefined) displayVal = 'undefined';
+
+            valSpan.classList.add('tree-val-editable');
+            if (typeof value === 'string') {
+                valSpan.classList.add('tree-val-string');
+            } else if (typeof value === 'number') {
+                valSpan.classList.add('tree-val-number');
+            } else if (typeof value === 'boolean') {
+                valSpan.classList.add('tree-val-bool');
+            } else {
+                valSpan.classList.add('tree-val-null');
+            }
+
+            valSpan.textContent = displayVal;
+            valSpan.setAttribute('data-path', JSON.stringify(path));
+
+            li.appendChild(valSpan);
+        }
+
+        return li;
+    }
+
+    function attachTreeListeners() {
+        treeContainer.querySelectorAll('.tree-val-editable').forEach(span => {
+            span.addEventListener('dblclick', handleTreeValueDoubleClick);
+        });
+    }
+
+    let originalTreeValue = null;
+
+    function handleTreeValueDoubleClick(e) {
+        const span = e.currentTarget;
+        if (span.isContentEditable) return;
+
+        originalTreeValue = span.innerText;
+        span.setAttribute('contenteditable', 'true');
+        span.focus();
+        // Select all text
+        const range = document.createRange();
+        range.selectNodeContents(span);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+        span.addEventListener('blur', handleTreeValueBlur);
+        span.addEventListener('keydown', handleTreeValueKeydown);
+    }
+
+    function handleTreeValueBlur(e) {
+        const span = e.currentTarget;
+        span.setAttribute('contenteditable', 'false');
+        span.removeEventListener('blur', handleTreeValueBlur);
+        span.removeEventListener('keydown', handleTreeValueKeydown);
+
+        const newValue = span.innerText;
+        if (newValue !== originalTreeValue) {
+            sendTreeUpdate(span, newValue);
+        }
+    }
+
+    function handleTreeValueKeydown(e) {
+        const span = e.currentTarget;
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            span.blur();
+        } else if (e.key === 'Escape') {
+            span.innerText = originalTreeValue;
+            span.blur();
+        }
+    }
+
+    function sendTreeUpdate(span, newValue) {
+        const pathJson = span.getAttribute('data-path');
+        if (!pathJson) return;
+
+        const fullPath = JSON.parse(pathJson);
+
+        if (fullPath.length === 0) return;
+
+        const targetSegment = fullPath[fullPath.length - 1];
+        const parentPath = fullPath.slice(0, fullPath.length - 1);
+
+        let key = null;
+        let index = null;
+
+        const indexMatch = targetSegment.match(/^\[(\d+)\]$/);
+        if (indexMatch) {
+            index = parseInt(indexMatch[1], 10);
+        } else {
+            key = targetSegment;
+        }
+
+        vscode.postMessage({
+            command: 'updateValue',
+            path: parentPath,
+            key: key,
+            index: index,
+            newValue: newValue
+        });
+    }
+
 
     function renderData(data, originalData) {
         if (Array.isArray(originalData)) {

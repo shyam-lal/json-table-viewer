@@ -21,6 +21,9 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             );
 
+            // const iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.svg');
+            // panel.iconPath = iconPath;
+
             const jsonContent = editor.document.getText();
 
             try {

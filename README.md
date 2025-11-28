@@ -1,31 +1,45 @@
-# JSON Table Editor for VS Code
+# Smart JSON Viewer for VS Code
 
-Stop squinting at raw, minified JSON. This extension provides a simple, interactive table view for your `.json` files, complete with editing, filtering, and powerful export tools.
+Stop squinting at raw, minified JSON. This extension transforms your `.json` files into interactive **Tables** and **Trees**, complete with two way editing, filtering, and powerful export tools.
 
+![Smart JSON Viewer Demo](media/activate.gif)
 ## Why?
 
-Working with large JSON arrays (like API responses or data dumps) is a pain. It's hard to read, hard to compare items, and almost impossible to edit safely. This tool provides a clean, spreadsheet-like interface to make that process simple, all without leaving VS Code.
+Working with large JSON files—like API responses or data dumps—is often painful. It is hard to read, difficult to compare items, and risky to edit manually. 
 
-## Features
+This tool provides a clean, spreadsheetlike interface (and now a structured Tree view) to make visualizing and manipulating data simple, all without leaving VS Code.
 
-* **Two-Way Editing:** The killer feature. Edit a value in the table, press Enter, and your `.json` file is **instantly updated and reformatted**. It works both ways—edit the text file, and the table view syncs automatically.
-* **Navigate Nested Data:** Don't just see `[Object]` or `[Array]`. Click on any nested item to "drill down" and open it in a new, fully interactive table with breadcrumbs.
-* **Analyze Data Quickly:**
-    * **Find in View:** Instantly search your entire table (including headers) just like `Ctrl+F` in a file. All matches are highlighted, and you can jump between them with navigation controls. Open the search bar with the icon or `Ctrl+F`.
-    * **Sort** any column (A-Z, Z-A, 1-9, 9-1).
-    * **Filter** by any column to find the data you need.
-    * **Show/Hide Columns** to hide noisy data and focus on what matters, now with a master "ALL" checkbox for convenience.
-* **Smart Export Tools:**
-    * **Export to CSV:** Instantly export your current filtered/sorted view to a `.csv` file.
-    * **Smart Export to XLSX:** Generates a relational, multi-sheet Excel file. Nested objects (`address`) and arrays (`tags`, `friends`) are automatically "un-nested" into their own sheets with a `_rowId` to link them back to the main data.
-* **Theme Aware:** The UI automatically adapts to your current VS Code theme for a native, clean look.
-* **Zero-Config:** Just open a `.json` file and click the icon.
+## Key Features
+
+### 1. Dual View Modes
+Switch instantly between two powerful visualizations using the toggle at the top right:
+* **Table View:** A spreadsheet style view perfect for arrays of objects. Sort, filter, and compare data side by side.
+* **Tree View:** A hierarchical view perfect for understanding deep nesting and complex structures.
+
+### 2. Universal Two Way Editing
+This is the killer feature. You can edit data directly in the preview, and your source `.json` file updates instantly.
+* **In Table Mode:** Double click any cell to edit.
+* **In Tree Mode:** Double click any primitive value (strings, numbers, booleans) to edit.
+* **Sync:** Changes made in the text editor also sync back to the preview automatically.
+
+### 3. Deep Navigation
+* **Drill Down:** In Table view, clicking on an `[Object]` or `[Array]` cell opens that specific item in a focused table view.
+* **Breadcrumbs:** Navigate back up through your data hierarchy with a single click.
+
+### 4. Powerful Analysis (Table Mode)
+* **Find in View:** Press `Ctrl+F` or click the Search icon to search the entire table (including headers). Matches are highlighted with navigation controls.
+* **Sort & Filter:** Click headers to sort (A-Z, 1-9) or use the filter row to find specific values.
+* **Column Control:** Hide noisy data by toggling specific columns, or use the master "ALL" checkbox to reset the view.
+
+### 5. Smart Export Tools
+* **Export to CSV:** Instantly export your current filtered/sorted table view to a `.csv` file.
+* **Smart Export to XLSX:** Generates a relational, multisheet Excel file. Instead of flattening data into a mess, nested objects (like `address`) and arrays (like `tags`) are automatically moved to their own sheets and linked via a `_rowId`.
 
 ## How to Use
 
 1.  Open any `.json` or `.jsonc` file in VS Code.
-2.  Click the "Preview JSON as Table" icon (a small table) in the editor's title bar.
-3.  That's it. Your data is now in an interactive table.
+2.  Click the **Preview JSON** icon (curly braces `{}`) in the editor's title bar.
+3.  Use the **Table / Tree** toggle in the top right to switch views.
 
 ## Feedback & Contributing
 
