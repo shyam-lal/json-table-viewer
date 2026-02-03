@@ -37,6 +37,46 @@ export function activate(context: vscode.ExtensionContext) {
             panel.webview.onDidReceiveMessage(
                 async message => {
                     switch (message.command) {
+                        case 'addRow':
+                            if (!editor) {
+                                vscode.window.showErrorMessage('No active editor to update.');
+                                return;
+                            }
+                            try {
+                                const document = editor.document;
+                                const json = JSON.parse(document.getText());
+                                let target = json;
+                                const navPath = message.path.slice(1);
+                                for (const segment of navPath) {
+                                    if (Array.isArray(target) && segment.startsWith('[') && segment.endsWith(']')) {
+                                        const index = parseInt(segment.substring(1, segment.length - 1));
+                                        target = target[index];
+                                    } else {
+                                        target = target[segment];
+                                    }
+                                }
+                                if (Array.isArray(target)) {
+                                    target.push(message.newRow);
+                                    const newJsonString = JSON.stringify(json, null, 2);
+                                    const fullRange = new vscode.Range(
+                                        document.positionAt(0),
+                                        document.positionAt(document.getText().length)
+                                    );
+                                    const edit = new vscode.WorkspaceEdit();
+                                    edit.replace(document.uri, fullRange, newJsonString);
+                                    const success = await vscode.workspace.applyEdit(edit);
+                                    if (success) {
+                                        panel.webview.postMessage({
+                                            command: 'documentUpdated',
+                                            newContent: newJsonString
+                                        });
+                                    }
+                                }
+                            } catch (e: any) {
+                                vscode.window.showErrorMessage(`Error adding row: ${e.message}`);
+                            }
+                            return;
+
                         case 'updateValue':
                             if (!editor) {
                                 vscode.window.showErrorMessage('No active editor to update.');
