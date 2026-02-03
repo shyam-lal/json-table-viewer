@@ -42,8 +42,37 @@
         switch (message.command) {
             case 'documentUpdated':
                 try {
-                    rootData = JSON.parse(message.newContent);
-                    navigationStack.splice(0, navigationStack.length, { data: rootData, name: 'root' });
+                    const newRootData = JSON.parse(message.newContent);
+                    const previousPath = navigationStack.map(item => item.name);
+                    
+                    // Reconstruct navigation stack with updated data
+                    const updatedStack = [{ data: newRootData, name: 'root' }];
+                    let currentData = newRootData;
+                    
+                    // Navigate to the same path in the updated data structure
+                    for (let i = 1; i < previousPath.length; i++) {
+                        const segment = previousPath[i];
+                        let nextData;
+                        
+                        if (Array.isArray(currentData) && segment.startsWith('[') && segment.endsWith(']')) {
+                            const index = parseInt(segment.substring(1, segment.length - 1));
+                            nextData = currentData[index];
+                        } else {
+                            nextData = currentData[segment];
+                        }
+                        
+                        if (nextData !== undefined) {
+                            updatedStack.push({ data: nextData, name: segment });
+                            currentData = nextData;
+                        } else {
+                            // Path no longer valid, reset to root
+                            updatedStack.length = 1;
+                            break;
+                        }
+                    }
+                    
+                    rootData = newRootData;
+                    navigationStack.splice(0, navigationStack.length, ...updatedStack);
                     filterState = {};
                     sortState = { key: null, direction: 'asc' };
                     focusedInput = null;
@@ -139,6 +168,10 @@
         let html = ``;
 
         if (isTable) {
+            const currentData = navigationStack[navigationStack.length - 1].data;
+            if (Array.isArray(currentData)) {
+                html += `<button id="add-row-btn" class="control-btn">+ Add Row</button>`;
+            }
             html += `<button id="export-csv-btn" class="control-btn">Export to CSV</button>
                      <button id="export-xlsx-btn" class="control-btn">Export to XLSX</button>
                      <button id="toggle-columns-btn" class="control-btn">Columns</button>`;
@@ -178,6 +211,7 @@
 
         if (isTable) {
             controlsContainer.querySelector('#toggle-columns-btn')?.addEventListener('click', handleToggleColumnsClick);
+            controlsContainer.querySelector('#add-row-btn')?.addEventListener('click', handleAddRowClick);
             controlsContainer.querySelectorAll('.column-toggle').forEach(checkbox => {
                 checkbox.addEventListener('change', handleColumnToggleChange);
             });
@@ -610,6 +644,69 @@
             allHeaders.forEach(header => hiddenColumns.add(header));
         }
         render();
+    }
+
+    function handleAddRowClick() {
+        const currentData = navigationStack[navigationStack.length - 1].data;
+        if (!Array.isArray(currentData)) {
+            return;
+        }
+
+        let newRow;
+
+        // If array is empty, we need to ask what type to add
+        if (currentData.length === 0) {
+            // For empty arrays, add a simple null value
+            newRow = null;
+        } else {
+            const firstItem = currentData[0];
+            
+            // Array of objects - create based on schema
+            if (typeof firstItem === 'object' && firstItem !== null && !Array.isArray(firstItem)) {
+                newRow = {};
+                Object.keys(firstItem).forEach(key => {
+                    const value = firstItem[key];
+                    if (value === null) {
+                        newRow[key] = null;
+                    } else if (typeof value === 'string') {
+                        newRow[key] = '';
+                    } else if (typeof value === 'number') {
+                        newRow[key] = 0;
+                    } else if (typeof value === 'boolean') {
+                        newRow[key] = false;
+                    } else if (Array.isArray(value)) {
+                        newRow[key] = [];
+                    } else if (typeof value === 'object') {
+                        newRow[key] = {};
+                    } else {
+                        newRow[key] = null;
+                    }
+                });
+            }
+            // Array of primitives (numbers, strings, booleans)
+            else if (typeof firstItem === 'string') {
+                newRow = '';
+            } else if (typeof firstItem === 'number') {
+                newRow = 0;
+            } else if (typeof firstItem === 'boolean') {
+                newRow = false;
+            }
+            // Array of arrays
+            else if (Array.isArray(firstItem)) {
+                newRow = [];
+            }
+            // Array of null values or other
+            else {
+                newRow = null;
+            }
+        }
+
+        const path = navigationStack.map(item => item.name);
+        vscode.postMessage({
+            command: 'addRow',
+            path: path,
+            newRow: newRow
+        });
     }
 
     let originalCellValue = null;

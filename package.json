@@ -57,6 +57,13 @@
           "command": "json-table-viewer.showPreview",
           "group": "navigation"
         }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceLangId == json",
+          "command": "json-table-viewer.showPreview",
+          "group": "1_modification"
+        }
       ]
     }
   },
